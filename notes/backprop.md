@@ -1,4 +1,15 @@
 4. Gradients - backprop.py (how a model actually learns)
+  
+  - Backprop is the tuning.
+  - Its not writing the 4225 numbers. 
+  - Starting random and let the model fix them itself
+
+  - 1. guess - predict next letter
+  - 2. Score - loss = how wrong it was. 1 numbers
+  - 3. For each of the 4425 numbers - would nudging this UP make the loss better/worse.
+       That answers is gradient. 
+  - 4. Nudge every number in the better direction, slightly.
+  - 5. Repeat 3k times.
 
 	4.1 What a gradient is
 	     "If I nudge this number up a little, does the loss go up or down?"

@@ -1,5 +1,18 @@
 3. Bigram model - bigram.py (the simplest thing that is really a language model)
 
+  - Bigram is the thing being tuned. 
+
+  - What the models is - a look-up table like dictionary
+  - To generate text - look up current letter, turn those scores into percentages, roll a weighted dice, append the result, repeat. 
+  - It is the whole model. 65 keys x 65 scores = 4225 numbers.
+
+Its flaw 
+  - it only ever sees one letter
+  - when its t is cannot tell if the text so far was right or th 
+  - it sees t and nothing else.
+  - only produces the letter-pairs that looks good but 
+    never the real words!
+
 	3.1 The one-sentence version
 	     Look at the current letter. Guess the next letter. That is the whole model.
 	     "Bigram" = "two letters": it looks at ONE letter to guess the NEXT one.
@@ -129,7 +142,7 @@
 
 		3.6.3 **Attention is the fix.** It lets a position look back at all the earlier
 		      letters and decide which ones matter for THIS prediction.
-		      That is step 4, and it is the one idea the whole transformer is built on.
+		      That is step 5, and it is the one idea the whole transformer is built on.
 
 	3.7 Words worth keeping
 
