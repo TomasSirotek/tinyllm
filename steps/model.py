@@ -5,12 +5,15 @@ from torch.nn import functional as F
 
 torch.manual_seed(1337)          # reproducibility: same run, same numbers
 
-batch_size = 32                  # independent chunks processed in parallel
-block_size = 8                   # max context length for a prediction
-max_iters = 5000
-eval_interval = 300
-learning_rate = 1e-3             # lower than the bigram's 1e-2: more parameters, gentler steps
-n_embd = 32                      # numbers describing each token (was vocab_size in the bigram)
+batch_size = 44                  # independent chunks processed in parallel
+block_size = 256                  # max context length for a prediction
+max_iters = 4000
+eval_interval = 500
+learning_rate = 3e-4             # lower than the bigram's 1e-2: more parameters, gentler steps
+n_embd = 384
+n_head = 6
+n_layer = 6 
+dropout = 0.2
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 # ---- data + tokenizer (same as step 1) ----
@@ -62,6 +65,7 @@ class Head(nn.Module):
         self.value = nn.Linear(n_embd, head_size, bias=False)   # "what I hand over"
         # not a parameter, just a constant we need on the right device -> register_buffer
         self.register_buffer("tril", torch.tril(torch.ones(block_size, block_size)))
+        self.dropout = nn.Dropout(dropout) 
 
     def forward(self, x):
         B, T, C = x.shape
@@ -70,7 +74,8 @@ class Head(nn.Module):
         # every query dotted with every key -> (B,T,T) match scores. * C**-0.5 is note 5.8.
         wei = q @ k.transpose(-2, -1) * C**-0.5
         wei = wei.masked_fill(self.tril[:T, :T] == 0, float("-inf"))  # block the future
-        wei = F.softmax(wei, dim=-1)                                  # rows sum to 1
+        wei = F.softmax(wei, dim=-1)
+        wei = self.dropout(wei)
         return wei @ self.value(x)
 
 class MultiHeadAttention(nn.Module):
@@ -78,12 +83,13 @@ class MultiHeadAttention(nn.Module):
     def __init__(self, num_heads, head_size):
         super().__init__()
         self.heads = nn.ModuleList([Head(head_size) for _ in range(num_heads)])
-        self.proj = nn.Linear(n_embd, n_embd)   # mix the heads back together
+        self.proj = nn.Linear(n_embd, n_embd)   # mix the heads back togetheri
+        self.dropout = nn.Dropout(dropout)
 
     def forward(self, x):
         # each head returns (B,T,head_size); glue them along the channel axis -> (B,T,n_embd)
         out = torch.cat([h(x) for h in self.heads], dim=-1)
-        return self.proj(out)
+        return self.dropout(self.proj(out))
 
 
 class FeedForward(nn.Module):
@@ -94,6 +100,7 @@ class FeedForward(nn.Module):
             nn.Linear(n_embd, 4 * n_embd),   # widen: more room to compute
             nn.ReLU(),                       # the non-linearity: negatives -> 0, positives unchanged
             nn.Linear(4 * n_embd, n_embd),   # project back down for the residual add
+            nn.Dropout(dropout),
         )
 
     def forward(self, x):
@@ -122,11 +129,7 @@ class AttentionLanguageModel(nn.Module):
         super().__init__()
         self.token_embedding_table    = nn.Embedding(vocab_size, n_embd)
         self.position_embedding_table = nn.Embedding(block_size, n_embd)
-        self.blocks = nn.Sequential(
-            Block(n_embd, n_head=4),
-            Block(n_embd, n_head=4),
-            Block(n_embd, n_head=4),
-        )
+        self.blocks = nn.Sequential(*[Block(n_embd, n_head=n_head) for _ in range(n_layer)])
         self.ln_f = nn.LayerNorm(n_embd)   # one final norm before the output layer
         self.lm_head = nn.Linear(n_embd, vocab_size)
 
@@ -171,6 +174,17 @@ for it in range(max_iters):
     optimizer.zero_grad(set_to_none=True)   # clear last step's grads — PyTorch accumulates otherwise
     loss.backward()                         # backward: gradient of loss w.r.t. every parameter
     optimizer.step()                        # nudge every parameter downhill
+
+# SAVE FIRST. Training is the expensive part - never let a bug in the fun part destroy it.
+ckpt = ROOT / "checkpoints" / "model.pt"
+torch.save({
+    "model": model.state_dict(),   # all 10.8M learned numbers
+    "stoi": stoi,                  # the tokenizer must travel WITH the model
+    "itos": itos,
+    "config": dict(n_embd=n_embd, n_head=n_head, n_layer=n_layer,
+                   block_size=block_size, vocab_size=vocab_size, dropout=dropout),
+}, ckpt)
+print("saved:", ckpt)
 
 print("\n---- sample ----")
 start = torch.zeros((1, 1), dtype=torch.long, device=device)   # seed with token 0 ('\n')
