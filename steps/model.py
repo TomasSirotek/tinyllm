@@ -78,10 +78,12 @@ class MultiHeadAttention(nn.Module):
     def __init__(self, num_heads, head_size):
         super().__init__()
         self.heads = nn.ModuleList([Head(head_size) for _ in range(num_heads)])
+        self.proj = nn.Linear(n_embd, n_embd)   # mix the heads back together
 
     def forward(self, x):
         # each head returns (B,T,head_size); glue them along the channel axis -> (B,T,n_embd)
-        return torch.cat([h(x) for h in self.heads], dim=-1)
+        out = torch.cat([h(x) for h in self.heads], dim=-1)
+        return self.proj(out)
 
 
 class FeedForward(nn.Module):
@@ -89,12 +91,30 @@ class FeedForward(nn.Module):
     def __init__(self, n_embd):
         super().__init__()
         self.net = nn.Sequential(
-            nn.Linear(n_embd, n_embd),
-            nn.ReLU(),                   # the non-linearity: negatives -> 0, positives unchanged
+            nn.Linear(n_embd, 4 * n_embd),   # widen: more room to compute
+            nn.ReLU(),                       # the non-linearity: negatives -> 0, positives unchanged
+            nn.Linear(4 * n_embd, n_embd),   # project back down for the residual add
         )
 
     def forward(self, x):
         return self.net(x)
+
+
+class Block(nn.Module):
+    """transformer block: communication (attention), then computation (ffwd)"""
+    def __init__(self, n_embd, n_head):
+        super().__init__()
+        self.sa   = MultiHeadAttention(n_head, n_embd // n_head)
+        self.ffwd = FeedForward(n_embd)
+        self.ln1  = nn.LayerNorm(n_embd)
+        self.ln2  = nn.LayerNorm(n_embd)
+
+    def forward(self, x):
+        # "x +" is the residual connection: the layer computes a CHANGE to x, not a replacement.
+        # That addition is a direct path for gradients to flow back through untouched.
+        x = x + self.sa(self.ln1(x))     # normalise, attend, add back
+        x = x + self.ffwd(self.ln2(x))   # normalise, think, add back
+        return x
 
 
 class AttentionLanguageModel(nn.Module):
@@ -102,8 +122,12 @@ class AttentionLanguageModel(nn.Module):
         super().__init__()
         self.token_embedding_table    = nn.Embedding(vocab_size, n_embd)
         self.position_embedding_table = nn.Embedding(block_size, n_embd)
-        self.sa_head = MultiHeadAttention(4, n_embd // 4)     # 4 heads of 8 channels each
-        self.ffwd    = FeedForward(n_embd)                    # NEW
+        self.blocks = nn.Sequential(
+            Block(n_embd, n_head=4),
+            Block(n_embd, n_head=4),
+            Block(n_embd, n_head=4),
+        )
+        self.ln_f = nn.LayerNorm(n_embd)   # one final norm before the output layer
         self.lm_head = nn.Linear(n_embd, vocab_size)
 
     def forward(self, idx, targets=None):
@@ -111,8 +135,8 @@ class AttentionLanguageModel(nn.Module):
         tok = self.token_embedding_table(idx)                                    # (B,T,n_embd)
         pos = self.position_embedding_table(torch.arange(T, device=idx.device))  # (T,n_embd)
         x = tok + pos          # "what I am" + "where I am"
-        x = self.sa_head(x)    # gather: let each position look at its past
-        x = self.ffwd(x)       # NEW: think privately about what was gathered
+        x = self.blocks(x)     # 3 transformer blocks: gather, think, gather, think, ...
+        x = self.ln_f(x)       # final normalisation
         logits = self.lm_head(x)                                                 # (B,T,vocab_size)
 
         if targets is None:
