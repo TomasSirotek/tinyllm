@@ -8,6 +8,9 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 
+from .config import Config
+from .tokenizer import CharTokenizer
+
 
 class Head(nn.Module):
     """one head of self-attention"""
@@ -76,16 +79,17 @@ class Block(nn.Module):
 
 
 class GPT(nn.Module):
-    def __init__(self, vocab_size, n_embd, n_head, n_layer, block_size, dropout=0.0):
+    def __init__(self, cfg: Config):
         super().__init__()
-        self.block_size = block_size
-        self.token_embedding_table    = nn.Embedding(vocab_size, n_embd)
-        self.position_embedding_table = nn.Embedding(block_size, n_embd)
+        self.block_size = cfg.block_size
+        self.token_embedding_table    = nn.Embedding(cfg.vocab_size, cfg.n_embd)
+        self.position_embedding_table = nn.Embedding(cfg.block_size, cfg.n_embd)
         self.blocks = nn.Sequential(
-            *[Block(n_embd, n_head, block_size, dropout) for _ in range(n_layer)]
+            *[Block(cfg.n_embd, cfg.n_head, cfg.block_size, cfg.dropout)
+              for _ in range(cfg.n_layer)]
         )
-        self.ln_f = nn.LayerNorm(n_embd)
-        self.lm_head = nn.Linear(n_embd, vocab_size)
+        self.ln_f = nn.LayerNorm(cfg.n_embd)
+        self.lm_head = nn.Linear(cfg.n_embd, cfg.vocab_size)
 
     def forward(self, idx, targets=None):
         B, T = idx.shape
@@ -121,12 +125,21 @@ class GPT(nn.Module):
         return idx
 
 
-def load_checkpoint(path, device="cpu"):
+def load_checkpoint(path, device="cpu") -> tuple["GPT", CharTokenizer]:
     """Rebuild a trained model plus its tokenizer from a saved checkpoint."""
     ckpt = torch.load(path, map_location=device, weights_only=False)
-    cfg = dict(ckpt["config"])
-    cfg["dropout"] = 0.0                    # generation is not training: no dropout
-    model = GPT(**cfg).to(device)
+
+    cfg = Config(**ckpt["config"])
+    cfg.dropout = 0.0                       # generation is not training: no dropout
+    model = GPT(cfg).to(device)
     model.load_state_dict(ckpt["model"])
     model.eval()                            # eval mode: disables dropout everywhere
-    return model, ckpt["stoi"], ckpt["itos"]
+
+    if "tokenizer" in ckpt:
+        tokenizer = CharTokenizer.from_state_dict(ckpt["tokenizer"])
+    else:
+        # older checkpoints stored the two raw dicts instead of a tokenizer state
+        itos = ckpt["itos"]
+        tokenizer = CharTokenizer("".join(itos[i] for i in range(len(itos))))
+
+    return model, tokenizer
