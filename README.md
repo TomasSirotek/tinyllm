@@ -36,17 +36,36 @@ run and watch. The loss drops, the output improves, and the reason why is writte
 Every line is a real run. The dashed line is `ln(65) = 4.17`, the loss of guessing evenly
 across the 65-character vocabulary — the bar any working model has to get under.
 
-Output from the final model:
+Output from the final model, at `temperature=0.6, top_k=10`:
 
 ```
-To have this life up against the ensign'd
-To spit again; occeannow, to Bringot, lazy
-To there that be successes in a mildery fied
-Till his best with rond, the roar
-And his best noble potion. Why, and he you must
-Say you terra; let me go
-That Edward so Rivers; and your brother usurp
+First Citizen:
+Thou shalt be my sweet of all the world,
+Which I there do not be any stay.
+
+COMINIUS:
+I have so force some to her death.
+
+BRUTUS:
+How my lord?
+
+MENENIUS:
+Say you are in horses?
+
+MENENIUS:
+They are as the first to the bosom of mine,
+And with the world win our wife, they destraight
+In the court of this way to death our entreats,
 ```
+
+Real words, real character names, real dialogue format. It means nothing — that part
+is the 10.8M-parameters-on-1MB ceiling, and no sampling setting touches it.
+
+The sampling settings matter more than they look. The same weights at `temperature=1.0`
+with no `top_k` produce `occeannow` and `mildery` — one unlucky character ruins a word,
+and over 400 characters that happens constantly. `top_k=10` removes the long tail, so
+the model can only pick from its ten best guesses, which are nearly always spelling the
+word correctly.
 
 ---
 

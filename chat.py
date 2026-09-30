@@ -12,8 +12,8 @@ from tinyllm import generate, load_checkpoint
 ROOT = Path(__file__).resolve().parent
 CKPT = ROOT / "checkpoints" / "model.pt"
 
-TEMPERATURE = 0.8      # <1 safer and more coherent, >1 wilder
-TOP_K = 20             # only ever sample from the 20 most likely characters
+TEMPERATURE = 0.6      # <1 safer and more coherent, >1 wilder
+TOP_K = 10             # only ever sample from the 10 most likely characters
 MAX_NEW_TOKENS = 400
 
 
@@ -34,10 +34,15 @@ def main() -> None:
             print()
             return
 
-        print(generate(model, tokenizer, prompt or "\n",
-                       max_new_tokens=MAX_NEW_TOKENS,
-                       temperature=TEMPERATURE,
-                       top_k=TOP_K))
+        text = generate(model, tokenizer, prompt or "\n",
+                        max_new_tokens=MAX_NEW_TOKENS,
+                        temperature=TEMPERATURE,
+                        top_k=TOP_K)
+
+        # generate() always stops after exactly MAX_NEW_TOKENS, which lands mid-word.
+        # Drop the unfinished last line so the output ends somewhere sensible.
+        cut = text.rfind("\n")
+        print(text[:cut] if cut > 0 else text)
         print()
 
 
