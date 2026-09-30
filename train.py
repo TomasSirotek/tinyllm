@@ -15,4 +15,6 @@ cfg.vocab_size = tok.vocab_size             # config learns the vocab size from 
 splits = make_splits(text, tok)             # encodes and splits 90/10
 model = GPT(cfg).to(cfg.device)
 
-train(model, splits, tok, cfg, ROOT / "checkpoints" / "model.pt")
+train(model, splits, tok, cfg,
+      ROOT / "checkpoints" / "model.pt",
+      ROOT / "checkpoints" / "history.csv")   # loss curve, for docs/plot_loss.py

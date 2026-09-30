@@ -1,0 +1,87 @@
+run,step,val_loss
+bigram,0,4.7241
+bigram,300,2.8249
+bigram,600,2.5682
+bigram,900,2.5088
+bigram,1200,2.5035
+bigram,1500,2.4921
+bigram,1800,2.4936
+bigram,2100,2.4846
+bigram,2400,2.4879
+bigram,2700,2.4911
+1 head,0,4.2047
+1 head,300,2.9574
+1 head,600,2.6456
+1 head,900,2.5451
+1 head,1200,2.5033
+1 head,1500,2.4808
+1 head,1800,2.4641
+1 head,2100,2.4422
+1 head,2400,2.4419
+1 head,2700,2.4340
+1 head,3000,2.4241
+1 head,3300,2.4231
+1 head,3600,2.4177
+1 head,3900,2.4179
+1 head,4200,2.4302
+1 head,4500,2.4024
+1 head,4800,2.4043
+4 heads,0,4.2226
+4 heads,300,2.8482
+4 heads,600,2.6175
+4 heads,900,2.5235
+4 heads,1200,2.4689
+4 heads,1500,2.4294
+4 heads,1800,2.4017
+4 heads,2100,2.3681
+4 heads,2400,2.3595
+4 heads,2700,2.3454
+4 heads,3000,2.3249
+4 heads,3300,2.3153
+4 heads,3600,2.3091
+4 heads,3900,2.3017
+4 heads,4200,2.3063
+4 heads,4500,2.2749
+4 heads,4800,2.2729
++ feed-forward,0,4.1995
++ feed-forward,300,2.7737
++ feed-forward,600,2.5733
++ feed-forward,900,2.4792
++ feed-forward,1200,2.4351
++ feed-forward,1500,2.4001
++ feed-forward,1800,2.3677
++ feed-forward,2100,2.3434
++ feed-forward,2400,2.3333
++ feed-forward,2700,2.3046
++ feed-forward,3000,2.2894
++ feed-forward,3300,2.2785
++ feed-forward,3600,2.2737
++ feed-forward,3900,2.2672
++ feed-forward,4200,2.2690
++ feed-forward,4500,2.2424
++ feed-forward,4800,2.2287
++ 3 blocks,0,4.3097
++ 3 blocks,300,2.5316
++ 3 blocks,600,2.3668
++ 3 blocks,900,2.2832
++ 3 blocks,1200,2.2301
++ 3 blocks,1500,2.2030
++ 3 blocks,1800,2.1765
++ 3 blocks,2100,2.1451
++ 3 blocks,2400,2.1371
++ 3 blocks,2700,2.1300
++ 3 blocks,3000,2.1101
++ 3 blocks,3300,2.1043
++ 3 blocks,3600,2.0985
++ 3 blocks,3900,2.0914
++ 3 blocks,4200,2.0705
++ 3 blocks,4500,2.0813
++ 3 blocks,4800,2.0684
+scaled up (10.8M),0,4.2820
+scaled up (10.8M),500,2.1277
+scaled up (10.8M),1000,1.8288
+scaled up (10.8M),1500,1.6815
+scaled up (10.8M),2000,1.6108
+scaled up (10.8M),2500,1.5649
+scaled up (10.8M),3000,1.5270
+scaled up (10.8M),3500,1.5066

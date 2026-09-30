@@ -7,7 +7,7 @@
 **Building a GPT from scratch, one runnable step at a time.**
 
 From a 4,225-number lookup table to a 10.8M-parameter transformer that writes Shakespeare.
-No frameworks beyond PyTorch, no hidden magic, every step small enough to read in one sitting.
+No frameworks beyond PyTorch, every step small enough to read in one sitting.
 
 <sub>Python 3.12 · PyTorch · CUDA optional</sub>
 
@@ -18,7 +18,7 @@ No frameworks beyond PyTorch, no hidden magic, every step small enough to read i
 ## What this is
 
 A learning project, built from nothing, in order. Each step is a standalone script you
-run and watch — the loss drops, the output improves, and the reason why is written down.
+run and watch. The loss drops, the output improves, and the reason why is written down.
 
 ```
  step            params     val loss   what it can do
@@ -30,6 +30,11 @@ run and watch — the loss drops, the output improves, and the reason why is wri
  + 3 blocks      42,369       2.07     near-words, correct format
  scaled up    10,788,929      1.49     real words, real structure
 ```
+
+<img src="docs/loss.png" alt="validation loss for every variant" width="100%">
+
+Every line is a real run. The dashed line is `ln(65) = 4.17`, the loss of guessing evenly
+across the 65-character vocabulary — the bar any working model has to get under.
 
 Output from the final model:
 
@@ -127,8 +132,7 @@ Knowing exactly why that is, is most of the point of building it.
 ## Credits
 
 The architecture follows Andrej Karpathy's
-[nanoGPT](https://github.com/karpathy/nanoGPT) and his
-[Let's build GPT](https://www.youtube.com/watch?v=kCc8FmEb1nY) walkthrough.
+[nanoGPT](https://github.com/karpathy/nanoGPT)
 Corpus is TinyShakespeare.
 
 ## License

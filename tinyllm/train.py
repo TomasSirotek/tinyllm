@@ -1,3 +1,4 @@
+import csv
 from pathlib import Path
 
 import torch
@@ -38,15 +39,21 @@ def save_checkpoint(path: Path, model, tokenizer: CharTokenizer, cfg: Config) ->
     }, path)
 
 
-def train(model, splits, tokenizer: CharTokenizer, cfg: Config, ckpt_path: Path) -> float:
-    """Train, checkpointing whenever validation loss improves. Returns the best val loss."""
+def train(model, splits, tokenizer: CharTokenizer, cfg: Config, ckpt_path: Path,
+          history_path: Path | None = None) -> float:
+    """Train, checkpointing whenever validation loss improves. Returns the best val loss.
+
+    history_path: optional CSV of the loss curve, for plotting afterwards.
+    """
     train_data, _ = splits
     optimizer = torch.optim.AdamW(model.parameters(), lr=cfg.learning_rate)
     best_val = float("inf")
+    history: list[tuple[int, float, float]] = []
 
     for it in range(cfg.max_iters):
         if it % cfg.eval_interval == 0 or it == cfg.max_iters - 1:
             losses = estimate_loss(model, splits, cfg)
+            history.append((it, losses["train"], losses["val"]))
             marker = ""
             # Save only when val improves. Train loss keeps falling long after the model
             # has started memorising - val is the one that tracks real quality.
@@ -61,6 +68,14 @@ def train(model, splits, tokenizer: CharTokenizer, cfg: Config, ckpt_path: Path)
         optimizer.zero_grad(set_to_none=True)   # clear last step's grads - they accumulate
         loss.backward()                         # backward: gradient for every parameter
         optimizer.step()                        # nudge every parameter downhill
+
+    if history_path is not None:
+        history_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(history_path, "w", newline="") as f:
+            w = csv.writer(f)
+            w.writerow(["step", "train_loss", "val_loss"])
+            w.writerows(history)
+        print("loss history:", history_path)
 
     print(f"best val loss: {best_val:.4f}  ({ckpt_path})")
     return best_val
